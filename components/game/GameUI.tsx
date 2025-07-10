@@ -1,9 +1,9 @@
 'use client';
 
+import MobileControls from '@/components/game/MobileControls';
 import { GameEngine } from '@/lib/engine/GameEngine';
 import { DOMUtils } from '@/lib/utils/helpers';
 import { useEffect, useState } from 'react';
-import MobileControls from './MobileControls';
 
 interface GameUIProps {
     engine: GameEngine | null;
