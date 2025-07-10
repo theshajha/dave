@@ -1,0 +1,254 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS properties for game styling */
+:root {
+    --game-primary: #2563eb;
+    --game-secondary: #dc2626;
+    --game-accent: #f59e0b;
+    --game-background: #1f2937;
+    --game-surface: #374151;
+    --game-text: #f9fafb;
+}
+
+/* Base styles */
+@layer base {
+    body {
+        @apply bg-game-background text-game-text;
+        font-feature-settings: "rlig" 1, "calt" 1;
+    }
+
+    /* Prevent text selection on game elements */
+    .game-element {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Optimize canvas for pixel art */
+    canvas {
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-crisp-edges;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-game-surface;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-game-accent rounded;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        @apply bg-game-primary;
+    }
+}
+
+/* Component styles */
+@layer components {
+
+    /* Game button styles */
+    .game-button {
+        @apply px-6 py-3 font-game font-bold text-game-text bg-game-accent border-2 border-game-accent rounded-lg transition-all duration-150 hover:bg-game-primary hover:border-game-primary active:scale-95 active:bg-game-secondary focus:outline-none focus:ring-2 focus:ring-game-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .game-button-secondary {
+        @apply game-button bg-transparent border-game-text text-game-text hover:bg-game-text hover:text-game-background;
+    }
+
+    /* Game panel styles */
+    .game-panel {
+        @apply bg-game-surface border border-game-accent rounded-lg p-4 shadow-lg;
+    }
+
+    /* HUD styles */
+    .game-hud {
+        @apply fixed top-4 left-4 right-4 z-50 flex justify-between items-center bg-game-surface/90 backdrop-blur-sm border border-game-accent/50 rounded-lg px-4 py-2 text-sm font-game;
+    }
+
+    /* Touch controls */
+    .touch-control {
+        @apply fixed z-40 opacity-60 transition-opacity duration-200 active:opacity-100 select-none;
+    }
+
+    .touch-dpad {
+        @apply touch-control bottom-4 left-4 w-20 h-20 bg-game-surface/80 rounded-full border-2 border-game-accent/50;
+    }
+
+    .touch-button {
+        @apply touch-control bottom-4 right-4 w-16 h-16 bg-game-accent/80 rounded-full border-2 border-game-accent flex items-center justify-center font-bold text-game-background;
+    }
+
+    /* Loading spinner */
+    .loading-spinner {
+        @apply inline-block w-8 h-8 border-4 border-current border-t-transparent rounded-full animate-spin;
+    }
+
+    /* Pixel art text */
+    .pixel-text {
+        @apply font-pixel leading-none tracking-wide;
+        text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Game score display */
+    .score-display {
+        @apply pixel-text text-game-accent text-lg font-bold;
+    }
+
+    /* Game lives display */
+    .lives-display {
+        @apply flex items-center space-x-1 pixel-text text-game-text;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+        @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4;
+    }
+
+    .modal-content {
+        @apply bg-game-surface border border-game-accent rounded-lg p-6 max-w-md w-full shadow-xl;
+    }
+}
+
+/* Utility classes */
+@layer utilities {
+    .game-container {
+        @apply w-full max-w-4xl mx-auto relative;
+    }
+
+    .canvas-container {
+        @apply relative bg-black rounded-lg overflow-hidden shadow-2xl;
+    }
+
+    /* Hide scrollbars but keep functionality */
+    .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Full screen utilities */
+    .fullscreen-enter {
+        @apply fixed inset-0 z-50 bg-black flex items-center justify-center;
+    }
+
+    /* Performance optimizations */
+    .gpu-accelerated {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        perspective: 1000;
+    }
+
+    /* Animation utilities */
+    .animate-float {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    .animate-pulse-slow {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .animate-bounce-gentle {
+        animation: bounce 2s infinite;
+    }
+}
+
+/* Keyframe animations */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px currentColor;
+    }
+
+    50% {
+        box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+    }
+}
+
+/* Media queries for responsive design */
+@media (max-width: 640px) {
+    .game-hud {
+        @apply text-xs px-2 py-1;
+    }
+
+    .game-button {
+        @apply px-4 py-2 text-sm;
+    }
+
+    .canvas-container {
+        @apply rounded-none;
+    }
+}
+
+@media (max-height: 600px) {
+    .game-hud {
+        @apply top-2;
+    }
+
+    .touch-dpad {
+        @apply bottom-2 w-16 h-16;
+    }
+
+    .touch-button {
+        @apply bottom-2 w-12 h-12 text-sm;
+    }
+}
+
+/* Print styles */
+@media print {
+
+    .game-element,
+    .touch-control,
+    .game-hud {
+        display: none !important;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+
+    .animate-float,
+    .animate-pulse-slow,
+    .animate-bounce-gentle,
+    .loading-spinner {
+        animation: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .game-button {
+        @apply border-4;
+    }
+
+    .canvas-container {
+        @apply border-4 border-game-text;
+    }
+}
