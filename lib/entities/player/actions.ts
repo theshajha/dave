@@ -42,6 +42,8 @@ export function resetPlayer(player: PlayerBase, x: number = 100, y: number = 100
     player['animationFrame'] = 0;
     player['animationTimer'] = 0;
     player.hasGun = false;
+    player.hasKey = false;
+    player.hasTrophy = false;
     player.jetpackFuel = 0;
     // update collision box
     player.collisionBox.x = x + 2;

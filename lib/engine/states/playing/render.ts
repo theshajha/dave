@@ -39,9 +39,5 @@ function renderHUD(engine: GameEngine, ctx: CanvasRenderingContext2D) {
         ctx.fillStyle = '#fbbf24';
         ctx.fillText('KEY ✓', 10, 145);
     }
-    if (player?.hasTrophy) {
-        ctx.fillStyle = '#c084fc';
-        ctx.fillText('TROPHY ✓', 10, 165);
-    }
     ctx.restore();
 } 

@@ -40,6 +40,9 @@ export class Level {
     private coinImage: HTMLImageElement | null = null;
     private gemImage: HTMLImageElement | null = null;
 
+    // Moving obstacles (e.g., tile value 9)
+    private movingObstacles: { x: number; y: number; minX: number; maxX: number; speed: number; dir: 1 | -1; bounds: Bounds }[] = [];
+
     // Level properties
     public levelNumber: number;
     public isComplete: boolean = false;
@@ -87,6 +90,18 @@ export class Level {
                     case 1: tileType = 'ground'; break; // brick wall
                     case 2: tileType = 'door'; this.exitDoor = { x: x * TILE_SIZE, y: y * TILE_SIZE }; break;
                     case 6: tileType = 'spikes'; break;
+                    case 9: // moving obstacle (horizontal)
+                        this.movingObstacles.push({
+                            x: x * TILE_SIZE,
+                            y: y * TILE_SIZE,
+                            minX: (x * TILE_SIZE) - TILE_SIZE * 5,
+                            maxX: (x * TILE_SIZE) + TILE_SIZE * 5,
+                            speed: 40,
+                            dir: 1,
+                            bounds: { x: x * TILE_SIZE, y: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE },
+                        });
+                        tileType = 'empty';
+                        break;
                     default: tileType = 'empty';
                 }
                 const tile = this.createTile(x, y, tileType);
@@ -386,6 +401,12 @@ export class Level {
                 this.renderCollectible(context, collectible);
             }
         });
+
+        // Render moving obstacles (simple yellow rectangle placeholder)
+        context.fillStyle = '#fbbf24';
+        this.movingObstacles.forEach(o => {
+            context.fillRect(o.x, o.y, TILE_SIZE, TILE_SIZE);
+        });
     }
 
     /**
@@ -463,4 +484,6 @@ export class Level {
             canExit: this.collectedCount >= this.totalCollectibles
         };
     }
+
+    public getMovingObstacles() { return this.movingObstacles; }
 } 

@@ -37,7 +37,7 @@ export function getSpriteFrameIndex(player: PlayerBase): number {
     switch (player.state) {
         case 'idle': {
             const idleFrames = [0, 4, 6];
-            return idleFrames[player['animationFrame']];
+            return idleFrames[player['animationFrame'] % 2];
         }
         case 'walking':
             return (player['animationFrame'] % 2) ? 5 : 2; // 2 & 5
