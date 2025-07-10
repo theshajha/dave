@@ -20,7 +20,7 @@ export default function GameUI({ engine, className = '' }: GameUIProps) {
     return (
         <div className={`absolute inset-0 pointer-events-none ${className}`}>
             <GameHUD engine={engine} />
-            {isMobile && <MobileControls engine={engine} />}
+            {isMobile && <MobileControls />}
             {!isMobile && <GameInstructions />}
         </div>
     );
