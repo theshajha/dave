@@ -20,7 +20,7 @@ export default function GameUI({ engine, className = '' }: GameUIProps) {
     return (
         <div className={`absolute inset-0 pointer-events-none ${className}`}>
             <GameHUD engine={engine} />
-            {isMobile && <MobileControls />}
+            {isMobile && <MobileControls engine={engine} />}
             {!isMobile && <GameInstructions />}
         </div>
     );
@@ -56,10 +56,13 @@ function GameHUD({ engine }: { engine: GameEngine | null }) {
                 <div>LEVEL: {gameState.level}</div>
             </div>
             <div className="flex items-center space-x-4">
-                <button onClick={() => engine?.pause()}>
+                <button 
+                    onClick={() => engine?.pause()}
+                    className="md:inline hidden"
+                >
                     {gameState.isPaused ? '▶' : '⏸'}
                 </button>
-                <div>ESC: Pause</div>
+                <div className="md:inline hidden">ESC: Pause</div>
             </div>
         </div>
     );

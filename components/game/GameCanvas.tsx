@@ -1,11 +1,12 @@
 'use client';
 
 import { GameEngine } from '@/lib/engine/GameEngine';
-import { GAME_CONFIG } from '@/lib/utils/constants';
+import { GAME_CONFIG, GAME_STATES } from '@/lib/utils/constants';
 import { DOMUtils } from '@/lib/utils/helpers';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import DebugInfo from './DebugInfo';
 import GameUI from './GameUI';
+import MobileRotationPrompt from '../ui/MobileRotationPrompt';
 
 interface GameCanvasProps {
     className?: string;
@@ -76,10 +77,11 @@ export default function GameCanvas({ className = '' }: GameCanvasProps) {
 
     // Handle canvas click for mobile play button
     const handleCanvasClick = useCallback(() => {
-        if (gameEngineRef.current && DOMUtils.isTouch()) {
+        if (gameEngineRef.current) {
             const engine = gameEngineRef.current;
-            if (engine.currentState === 'menu') {
-                engine.setState('playing');
+            // Check if we're in menu state and start the game
+            if (engine.state && (engine.state.currentState === GAME_STATES.MENU || engine.currentState === GAME_STATES.MENU)) {
+                engine.setState(GAME_STATES.PLAYING);
             }
         }
     }, []);
@@ -104,36 +106,41 @@ export default function GameCanvas({ className = '' }: GameCanvasProps) {
     }
 
     return (
-        <div className={`game-view-container flex flex-col items-center justify-center w-full h-full ${className}`}>
-            <div className="relative">
-                <canvas
-                    ref={canvasRef}
-                    className="game-element gpu-accelerated"
-                    width={GAME_CONFIG.canvas.width}
-                    height={GAME_CONFIG.canvas.height}
-                    style={{
-                        imageRendering: 'pixelated',
-                        maxWidth: '100%',
-                        maxHeight: '100%',
-                    }}
-                />
-                <GameUI engine={gameEngineRef.current} />
-            </div>
-
-            {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-game-background">
-                    <div className="text-center space-y-4">
-                        <div className="loading-spinner"></div>
-                        <p className="pixel-text text-game-text">
-                            Initializing game engine...
-                        </p>
-                    </div>
+        <>
+            <MobileRotationPrompt />
+            <div className={`game-view-container flex flex-col items-center justify-center w-full h-full ${className}`}>
+                <div className="relative w-full flex items-center justify-center">
+                    <canvas
+                        ref={canvasRef}
+                        className="game-element gpu-accelerated game-canvas"
+                        width={GAME_CONFIG.canvas.width}
+                        height={GAME_CONFIG.canvas.height}
+                        onClick={handleCanvasClick}
+                        onTouchStart={handleCanvasClick}
+                        style={{
+                            imageRendering: 'pixelated',
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                        }}
+                    />
+                    <GameUI engine={gameEngineRef.current} />
                 </div>
-            )}
 
-            {!isLoading && process.env.NODE_ENV === 'development' && (
-                <DebugInfo engine={gameEngineRef.current} />
-            )}
-        </div>
+                {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-game-background">
+                        <div className="text-center space-y-4">
+                            <div className="loading-spinner"></div>
+                            <p className="pixel-text text-game-text">
+                                Initializing game engine...
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {!isLoading && process.env.NODE_ENV === 'development' && (
+                    <DebugInfo engine={gameEngineRef.current} />
+                )}
+            </div>
+        </>
     );
 } 

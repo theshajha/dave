@@ -2,7 +2,11 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 
-export default function MobileControls() {
+interface MobileControlsProps {
+    engine?: any;
+}
+
+export default function MobileControls({ engine }: MobileControlsProps = {}) {
     const [activeControls, setActiveControls] = useState({
         left: false,
         right: false,
@@ -18,14 +22,13 @@ export default function MobileControls() {
             [direction]: isActive,
         }));
 
-        // Emit game input events here
-        // This will be connected to the input manager
-        if (isActive) {
-            console.log(`Touch input: ${direction} start`);
-        } else {
-            console.log(`Touch input: ${direction} end`);
+        // Send input to game engine
+        if (engine && (engine as any).inputManager) {
+            (engine as any).inputManager.setTouchInput(direction, isActive);
         }
-    }, []);
+        
+        console.log(`Touch input: ${direction} ${isActive ? 'start' : 'end'}`);
+    }, [engine]);
 
     // Handle jump button
     const handleJumpTouch = useCallback((isActive: boolean) => {
@@ -34,12 +37,13 @@ export default function MobileControls() {
             jump: isActive,
         }));
 
-        if (isActive) {
-            console.log('Touch input: jump start');
-        } else {
-            console.log('Touch input: jump end');
+        // Send input to game engine
+        if (engine && (engine as any).inputManager) {
+            (engine as any).inputManager.setTouchInput('jump', isActive);
         }
-    }, []);
+        
+        console.log(`Touch input: jump ${isActive ? 'start' : 'end'}`);
+    }, [engine]);
 
     // Generic touch event handlers
     const createTouchHandler = (action: () => void, releaseAction?: () => void) => ({
@@ -112,15 +116,25 @@ export default function MobileControls() {
                 <span className="text-lg font-bold">↑</span>
             </button>
 
-            {/* Additional buttons for smaller screens */}
-            <div className="fixed bottom-4 right-20 space-y-2 z-40">
-                {/* Pause button */}
+            {/* Pause button - moved to top right */}
+            <div className="fixed top-4 right-4 z-40">
                 <button
                     className="w-12 h-8 bg-game-surface/80 border border-game-accent/50 
                      rounded text-xs text-game-text flex items-center justify-center
                      active:bg-game-accent active:text-game-background
                      transition-colors duration-100 select-none"
-                    onClick={() => console.log('Pause button pressed')}
+                    onClick={() => {
+                        if (engine && (engine as any).inputManager) {
+                            (engine as any).inputManager.setTouchInput('pause', true);
+                            // Reset pause state after a short delay to simulate key press
+                            setTimeout(() => {
+                                if (engine && (engine as any).inputManager) {
+                                    (engine as any).inputManager.setTouchInput('pause', false);
+                                }
+                            }, 100);
+                        }
+                        console.log('Pause button pressed');
+                    }}
                 >
                     ⏸
                 </button>

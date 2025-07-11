@@ -79,15 +79,16 @@
 
     /* Touch controls */
     .touch-control {
-        @apply fixed z-40 opacity-60 transition-opacity duration-200 active:opacity-100 select-none;
+        @apply fixed z-40 opacity-80 transition-all duration-200 active:opacity-100 select-none;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .touch-dpad {
-        @apply touch-control bottom-4 left-4 w-20 h-20 bg-game-surface/80 rounded-full border-2 border-game-accent/50;
+        @apply touch-control bottom-4 left-4 w-20 h-20 bg-game-surface/90 rounded-full border-2 border-game-accent/50 backdrop-blur-sm;
     }
 
     .touch-button {
-        @apply touch-control bottom-4 right-4 w-16 h-16 bg-game-accent/80 rounded-full border-2 border-game-accent flex items-center justify-center font-bold text-game-background;
+        @apply touch-control bottom-4 right-4 w-16 h-16 bg-game-accent/90 rounded-full border-2 border-game-accent flex items-center justify-center font-bold text-game-background backdrop-blur-sm;
     }
 
     /* Loading spinner */
@@ -129,6 +130,12 @@
 
     .canvas-container {
         @apply relative bg-black rounded-lg overflow-hidden shadow-2xl;
+    }
+
+    .game-canvas {
+        @apply cursor-pointer;
+        aspect-ratio: 1280 / 480; /* Maintain original aspect ratio */
+        margin-top: 1rem; /* Add consistent top padding across all devices */
     }
 
     /* Hide scrollbars but keep functionality */
@@ -192,32 +199,91 @@
     }
 }
 
-/* Media queries for responsive design */
-@media (max-width: 640px) {
+/* Mobile landscape-first design */
+@media (max-width: 640px) and (orientation: landscape) {
     .game-hud {
-        @apply text-xs px-2 py-1;
+        @apply text-xs px-2 py-1 left-2 right-2 top-1;
     }
 
     .game-button {
-        @apply px-4 py-2 text-sm;
+        @apply px-3 py-1 text-xs;
     }
 
     .canvas-container {
         @apply rounded-none;
     }
-}
 
-@media (max-height: 600px) {
-    .game-hud {
-        @apply top-2;
+    .game-canvas {
+        width: 100vw;
+        height: 95vh; /* Use almost full height in landscape */
+        object-fit: contain;
+        margin-top: 1rem; /* Add top padding */
     }
 
+    .game-view-container {
+        @apply p-0 m-0 h-screen overflow-hidden pt-2;
+    }
+
+    /* Optimized controls for landscape */
     .touch-dpad {
-        @apply bottom-2 w-16 h-16;
+        @apply bottom-3 left-3 w-16 h-16;
     }
 
     .touch-button {
-        @apply bottom-2 w-12 h-12 text-sm;
+        @apply bottom-3 right-3 w-14 h-14;
+    }
+}
+
+/* Mobile portrait (show rotation prompt) */
+@media (max-width: 640px) and (orientation: portrait) {
+    .game-canvas {
+        display: none; /* Hide game in portrait */
+    }
+    
+    .touch-dpad,
+    .touch-button {
+        display: none; /* Hide controls in portrait */
+    }
+}
+
+/* Tablet and larger mobile landscape optimizations */
+@media (min-width: 641px) and (max-width: 1024px) and (orientation: landscape) {
+    .game-canvas {
+        width: 100vw;
+        height: 90vh;
+        object-fit: contain;
+        margin-top: 1.5rem; /* Slightly more padding for tablets */
+    }
+
+    .game-view-container {
+        @apply pt-4;
+    }
+
+    .touch-dpad {
+        @apply bottom-4 left-4 w-18 h-18;
+    }
+
+    .touch-button {
+        @apply bottom-4 right-4 w-16 h-16;
+    }
+}
+
+/* Very small mobile devices in landscape */
+@media (max-width: 640px) and (max-height: 400px) and (orientation: landscape) {
+    .game-hud {
+        @apply text-xs py-1 top-1;
+    }
+    
+    .touch-dpad {
+        @apply bottom-2 left-2 w-12 h-12;
+    }
+
+    .touch-button {
+        @apply bottom-2 right-2 w-10 h-10 text-xs;
+    }
+
+    .game-canvas {
+        height: 98vh; /* Use almost full height on very small screens */
     }
 }
 

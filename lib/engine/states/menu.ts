@@ -5,6 +5,7 @@ export function updateMenu(engine: GameEngine, dt: number): void {
     const input = (engine as any).inputManager;
     input?.update(dt);
 
+    // Handle keyboard input
     if (input?.isPressed('jump')) {
         engine.setState(GAME_STATES.PLAYING);
     }
@@ -28,5 +29,15 @@ export function renderMenu(engine: GameEngine): void {
 
     ctx.fillStyle = '#f9fafb';
     ctx.font = '16px monospace';
-    ctx.fillText('Press SPACE to Start', canvas.width / 2, canvas.height / 2 + 20);
+    
+    // Check if device is mobile/touch-enabled
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    let startText = 'Press SPACE to Start';
+    
+    if (isMobile) {
+        const isLandscape = window.innerWidth > window.innerHeight;
+        startText = isLandscape ? 'Tap to Start' : 'Rotate Device to Play';
+    }
+    
+    ctx.fillText(startText, canvas.width / 2, canvas.height / 2 + 20);
 } 
