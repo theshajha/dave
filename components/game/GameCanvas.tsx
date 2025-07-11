@@ -2,11 +2,10 @@
 
 import { GameEngine } from '@/lib/engine/GameEngine';
 import { GAME_CONFIG, GAME_STATES } from '@/lib/utils/constants';
-import { DOMUtils } from '@/lib/utils/helpers';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import MobileRotationPrompt from '../ui/MobileRotationPrompt';
 import DebugInfo from './DebugInfo';
 import GameUI from './GameUI';
-import MobileRotationPrompt from '../ui/MobileRotationPrompt';
 
 interface GameCanvasProps {
     className?: string;
@@ -79,8 +78,8 @@ export default function GameCanvas({ className = '' }: GameCanvasProps) {
     const handleCanvasClick = useCallback(() => {
         if (gameEngineRef.current) {
             const engine = gameEngineRef.current;
-            // Check if we're in menu state and start the game
-            if (engine.state && (engine.state.currentState === GAME_STATES.MENU || engine.currentState === GAME_STATES.MENU)) {
+            // Start the game when the canvas is clicked/touched while in the MENU state
+            if (engine.currentState === GAME_STATES.MENU) {
                 engine.setState(GAME_STATES.PLAYING);
             }
         }

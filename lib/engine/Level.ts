@@ -47,7 +47,7 @@ export class Level {
 
     // Moving platforms (e.g., tile value 9) - 3 tiles wide
     private movingObstacles: { x: number; y: number; minX: number; maxX: number; speed: number; dir: 1 | -1; bounds: Bounds }[] = [];
-    
+
     // Moving enemies (e.g., tile value 10 - moths)
     private movingEnemies: { x: number; y: number; minX: number; maxX: number; speed: number; dir: 1 | -1; bounds: Bounds }[] = [];
 
@@ -100,10 +100,10 @@ export class Level {
             console.error('Invalid grid provided to generateFromGrid');
             return;
         }
-        
+
         this.height = grid.length;
         this.width = grid[0]?.length || 0;
-        
+
         if (this.width === 0) {
             console.error('Grid has no columns');
             return;
@@ -375,20 +375,20 @@ export class Level {
             if (collectible.type === 'key') {
                 this.keysCollected++;
                 console.log(`Key collected! Keys: ${this.keysCollected}`);
-                
+
                 // Unlock doors if we have keys
                 if (this.keysCollected > 0) {
                     this.unlockDoors();
                 }
             }
-            
+
             // Track diamond collection and spawn princess
             if (collectible.type === 'gem') {
                 this.diamondCollected = true;
                 console.log('Diamond collected! Princess appears...');
                 this.spawnPrincess();
             }
-            
+
             // Track princess collection
             if (collectible.type === 'princess') {
                 this.princessCollected = true;
@@ -459,7 +459,7 @@ export class Level {
             console.error('Invalid rendering context provided to Level.render');
             return;
         }
-        
+
         // Render tiles
         for (let y = 0; y < this.height; y++) {
             if (!this.tiles[y]) continue;
@@ -505,9 +505,9 @@ export class Level {
                         const enemySize = TILE_SIZE * 1.5;
                         const offsetX = (enemySize - TILE_SIZE) / 2;
                         const offsetY = (enemySize - TILE_SIZE) / 2;
-                        context.drawImage(this.enemyImage, 
-                            enemy.x - offsetX, 
-                            enemy.y - offsetY, 
+                        context.drawImage(this.enemyImage,
+                            enemy.x - offsetX,
+                            enemy.y - offsetY,
                             enemySize, enemySize);
                     } else {
                         // Fallback: draw a red rectangle if image not loaded
@@ -524,7 +524,7 @@ export class Level {
      */
     private renderTile(context: CanvasRenderingContext2D, tile: LevelTile): void {
         if (!context || !tile) return;
-        
+
         let frameIndex = -1;
 
         switch (tile.type) {
@@ -552,9 +552,9 @@ export class Level {
                     const doorSize = TILE_SIZE * 2;
                     const offsetX = (doorSize - TILE_SIZE) / 2;
                     const offsetY = doorSize - TILE_SIZE; // Align bottom with tile
-                    context.drawImage(this.doorImage, 
-                        tile.x - offsetX, 
-                        tile.y - offsetY, 
+                    context.drawImage(this.doorImage,
+                        tile.x - offsetX,
+                        tile.y - offsetY,
                         doorSize, doorSize);
                 }
                 return;
@@ -569,9 +569,9 @@ export class Level {
                     const doorSize = TILE_SIZE * 2;
                     const offsetX = (doorSize - TILE_SIZE) / 2;
                     const offsetY = doorSize - TILE_SIZE; // Align bottom with tile
-                    context.drawImage(this.lockedDoorImage, 
-                        tile.x - offsetX, 
-                        tile.y - offsetY, 
+                    context.drawImage(this.lockedDoorImage,
+                        tile.x - offsetX,
+                        tile.y - offsetY,
                         doorSize, doorSize);
                 } else {
                     // Fallback: draw a red door
@@ -626,9 +626,9 @@ export class Level {
                     // Princess same size as player: 28x48
                     const princessWidth = 28;
                     const princessHeight = 48;
-                    context.drawImage(this.princessImage, 
-                        collectible.position.x - (princessWidth - TILE_SIZE) / 2, 
-                        collectible.position.y - (princessHeight - TILE_SIZE), 
+                    context.drawImage(this.princessImage,
+                        collectible.position.x - (princessWidth - TILE_SIZE) / 2,
+                        collectible.position.y - (princessHeight - TILE_SIZE),
                         princessWidth, princessHeight);
                 } else {
                     // Fallback: draw a pink princess
@@ -659,6 +659,8 @@ export class Level {
         };
     }
 
+    public getCollectibles() { return this.collectibles; }
+
     public getMovingObstacles() { return this.movingObstacles; }
     public getMovingEnemies() { return this.movingEnemies; }
 
@@ -685,7 +687,7 @@ export class Level {
      */
     private spawnPrincess(): void {
         if (this.princessSpawned || !this.princessSpawnPosition) return;
-        
+
         // Add princess as a collectible at predefined spawn position
         this.collectibles.push({
             id: 'princess',
@@ -693,14 +695,14 @@ export class Level {
             type: 'princess',
             value: 0, // No score value
             collected: false,
-            bounds: { 
-                x: this.princessSpawnPosition.x, 
-                y: this.princessSpawnPosition.y, 
-                width: TILE_SIZE, 
-                height: TILE_SIZE 
+            bounds: {
+                x: this.princessSpawnPosition.x,
+                y: this.princessSpawnPosition.y,
+                width: TILE_SIZE,
+                height: TILE_SIZE
             }
         });
-        
+
         this.totalCollectibles++;
         this.princessSpawned = true;
         console.log(`Princess spawned at predefined location (${this.princessSpawnPosition.x / TILE_SIZE}, ${this.princessSpawnPosition.y / TILE_SIZE})`);
@@ -737,16 +739,16 @@ export class Level {
         this.collectedCount = 0;
         this.keysCollected = 0;
         this.isComplete = false;
-        
+
         // Reset diamond and princess states
         this.diamondCollected = false;
         this.princessCollected = false;
         this.princessSpawned = false;
-        
+
         // Remove princess from collectibles if it was dynamically added
         this.collectibles = this.collectibles.filter(c => c.type !== 'princess');
         this.totalCollectibles = this.collectibles.length;
-        
+
         // Re-lock doors
         this.lockedDoors.forEach(doorPos => {
             const tileX = Math.floor(doorPos.x / TILE_SIZE);
