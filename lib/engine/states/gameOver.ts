@@ -1,9 +1,8 @@
 import { GameEngine } from '../GameEngine';
 
 export function updateGameOver(engine: GameEngine, _dt: number): void {
-    if ((engine as any).inputManager?.isPressed('jump')) {
-        (engine as any).restartGame();
-    }
+    // Game restart is handled by event system in events.ts
+    // No need for polling-based input checking here
 }
 
 export function renderGameOver(engine: GameEngine): void {

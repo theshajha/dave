@@ -18,7 +18,7 @@ export function getMaxFramesForState(state: string): number {
     switch (state) {
         case 'idle':
         case 'walking':
-            return 2; // idle: 0-1, walk: 3-4
+            return 3; // idle: 0-1, walk: 3-4
         case 'jumping':
         case 'falling':
             return 1; // all are static frames
@@ -37,7 +37,8 @@ export function getSpriteFrameIndex(player: PlayerBase): number {
     switch (player.state) {
         case 'idle': {
             const idleFrames = [0, 4, 6];
-            return idleFrames[player['animationFrame'] % 2];
+            // return idleFrames[player['animationFrame'] % 2];
+            return 0;
         }
         case 'walking':
             return (player['animationFrame'] % 2) ? 5 : 2; // 2 & 5

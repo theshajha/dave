@@ -41,7 +41,7 @@ export class PlayerBase {
 
     // Shared sprite sheet
     public static spriteSheet: SpriteSheet | null = null;
-    public static readonly SPRITE_FRAME_WIDTH = 48;
+    public static readonly SPRITE_FRAME_WIDTH = 28;
     public static readonly SPRITE_FRAME_HEIGHT = 48;
     public static readonly DRAW_SCALE = 1;
 

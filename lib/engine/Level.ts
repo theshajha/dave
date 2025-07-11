@@ -6,17 +6,18 @@ import { SpriteSheet } from './SpriteSheet';
 export interface LevelTile {
     x: number;
     y: number;
-    type: 'empty' | 'ground' | 'platform' | 'wall' | 'spikes' | 'door' | 'trophy' | 'coin';
+    type: 'empty' | 'ground' | 'platform' | 'wall' | 'spikes' | 'door' | 'lockedDoor' | 'trophy' | 'coin' | 'ladder';
     isSolid: boolean;
     isDangerous: boolean;
     isCollectible: boolean;
+    isClimbable: boolean;
     bounds: Bounds;
 }
 
 export interface Collectible {
     id: string;
     position: Vector2D;
-    type: 'trophy' | 'coin' | 'gem';
+    type: 'trophy' | 'coin' | 'gem' | 'key' | 'princess';
     value: number;
     collected: boolean;
     bounds: Bounds;
@@ -39,15 +40,28 @@ export class Level {
     private trophyImage: HTMLImageElement | null = null;
     private coinImage: HTMLImageElement | null = null;
     private gemImage: HTMLImageElement | null = null;
+    private keyImage: HTMLImageElement | null = null;
+    private lockedDoorImage: HTMLImageElement | null = null;
+    private enemyImage: HTMLImageElement | null = null;
+    private princessImage: HTMLImageElement | null = null;
 
-    // Moving obstacles (e.g., tile value 9)
+    // Moving platforms (e.g., tile value 9) - 3 tiles wide
     private movingObstacles: { x: number; y: number; minX: number; maxX: number; speed: number; dir: 1 | -1; bounds: Bounds }[] = [];
+    
+    // Moving enemies (e.g., tile value 10 - moths)
+    private movingEnemies: { x: number; y: number; minX: number; maxX: number; speed: number; dir: 1 | -1; bounds: Bounds }[] = [];
 
     // Level properties
     public levelNumber: number;
     public isComplete: boolean = false;
     private totalCollectibles: number = 0;
     private collectedCount: number = 0;
+    private keysCollected: number = 0;
+    private lockedDoors: Vector2D[] = [];
+    private diamondCollected: boolean = false;
+    private princessCollected: boolean = false;
+    private princessSpawned: boolean = false;
+    private princessSpawnPosition: Vector2D | null = null;
 
     constructor(levelNumber: number = 1, map?: (string | number)[][]) {
         this.levelNumber = levelNumber;
@@ -68,6 +82,10 @@ export class Level {
         AssetUtils.loadImage('/assets/sprites/trophy.png').then(img => { this.trophyImage = img; });
         AssetUtils.loadImage('/assets/sprites/coin.png').then(img => { this.coinImage = img; });
         AssetUtils.loadImage('/assets/sprites/diamond.png').then(img => { this.gemImage = img; });
+        AssetUtils.loadImage('/assets/sprites/key.png').then(img => { this.keyImage = img; });
+        AssetUtils.loadImage('/assets/sprites/locked-door.png').then(img => { this.lockedDoorImage = img; });
+        AssetUtils.loadImage('/assets/sprites/moth.png').then(img => { this.enemyImage = img; });
+        AssetUtils.loadImage('/assets/sprites/princess.png').then(img => { this.princessImage = img; });
 
         if (map) {
             this.generateFromGrid(map);
@@ -78,8 +96,18 @@ export class Level {
 
     /** Generate level from provided grid */
     private generateFromGrid(grid: (string | number)[][]): void {
+        if (!grid || grid.length === 0) {
+            console.error('Invalid grid provided to generateFromGrid');
+            return;
+        }
+        
         this.height = grid.length;
-        this.width = grid[0].length;
+        this.width = grid[0]?.length || 0;
+        
+        if (this.width === 0) {
+            console.error('Grid has no columns');
+            return;
+        }
 
         this.tiles = [];
         grid.forEach((row, y) => {
@@ -89,14 +117,28 @@ export class Level {
                 switch (cell) {
                     case 1: tileType = 'ground'; break; // brick wall
                     case 2: tileType = 'door'; this.exitDoor = { x: x * TILE_SIZE, y: y * TILE_SIZE }; break;
+                    case 4: tileType = 'ladder'; break; // climbable ladder
                     case 6: tileType = 'spikes'; break;
-                    case 9: // moving obstacle (horizontal)
+                    case 13: tileType = 'lockedDoor'; this.lockedDoors.push({ x: x * TILE_SIZE, y: y * TILE_SIZE }); break;
+                    case 9: // moving platform (horizontal, 3 tiles wide)
                         this.movingObstacles.push({
                             x: x * TILE_SIZE,
                             y: y * TILE_SIZE,
                             minX: (x * TILE_SIZE) - TILE_SIZE * 5,
                             maxX: (x * TILE_SIZE) + TILE_SIZE * 5,
                             speed: 40,
+                            dir: 1,
+                            bounds: { x: x * TILE_SIZE, y: y * TILE_SIZE, width: TILE_SIZE * 3, height: TILE_SIZE },
+                        });
+                        tileType = 'empty';
+                        break;
+                    case 10: // moving enemy (moth)
+                        this.movingEnemies.push({
+                            x: x * TILE_SIZE,
+                            y: y * TILE_SIZE,
+                            minX: (x * TILE_SIZE) - TILE_SIZE * 3,
+                            maxX: (x * TILE_SIZE) + TILE_SIZE * 3,
+                            speed: 30,
                             dir: 1,
                             bounds: { x: x * TILE_SIZE, y: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE },
                         });
@@ -107,10 +149,10 @@ export class Level {
                 const tile = this.createTile(x, y, tileType);
                 this.tiles[y][x] = tile;
 
-                // collectibles
-                if (cell === 3 || cell === 4 || cell === 5 || cell === 12) {
-                    const val = cell === 5 ? SCORES.TROPHY : (cell === 3 ? SCORES.COIN : 0);
-                    const type = cell === 5 ? 'trophy' : (cell === 3 ? 'coin' : 'key');
+                // collectibles (3:Coin, 5:Trophy, 7:Gem, 12:Key)
+                if (cell === 3 || cell === 5 || cell === 7 || cell === 12) {
+                    const val = cell === 5 ? SCORES.TROPHY : (cell === 3 ? SCORES.COIN : (cell === 7 ? SCORES.GEM : 0));
+                    const type = cell === 5 ? 'trophy' : (cell === 3 ? 'coin' : (cell === 7 ? 'gem' : 'key'));
                     this.collectibles.push({
                         id: `c-${x}-${y}`,
                         position: { x: x * TILE_SIZE, y: y * TILE_SIZE },
@@ -119,6 +161,11 @@ export class Level {
                         collected: false,
                         bounds: { x: x * TILE_SIZE, y: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }
                     });
+                }
+
+                // Princess spawn position (15)
+                if (cell === 15) {
+                    this.princessSpawnPosition = { x: x * TILE_SIZE, y: y * TILE_SIZE };
                 }
 
                 if (cell === 'P') {
@@ -185,9 +232,10 @@ export class Level {
             x: pixelX,
             y: pixelY,
             type,
-            isSolid: type === 'ground' || type === 'platform' || type === 'wall',
+            isSolid: type === 'ground' || type === 'platform' || type === 'wall' || type === 'lockedDoor',
             isDangerous: type === 'spikes',
             isCollectible: type === 'trophy' || type === 'coin',
+            isClimbable: type === 'ladder',
             bounds: {
                 x: pixelX,
                 y: pixelY,
@@ -266,9 +314,11 @@ export class Level {
         hasCollision: boolean;
         solidTiles: LevelTile[];
         dangerousTiles: LevelTile[];
+        climbableTiles: LevelTile[];
     } {
         const solidTiles: LevelTile[] = [];
         const dangerousTiles: LevelTile[] = [];
+        const climbableTiles: LevelTile[] = [];
 
         // Calculate tile range to check
         const startX = Math.max(0, Math.floor(collisionBox.x / TILE_SIZE));
@@ -288,6 +338,9 @@ export class Level {
                     if (tile.isDangerous) {
                         dangerousTiles.push(tile);
                     }
+                    if (tile.isClimbable) {
+                        climbableTiles.push(tile);
+                    }
                 }
             }
         }
@@ -295,7 +348,8 @@ export class Level {
         return {
             hasCollision: solidTiles.length > 0 || dangerousTiles.length > 0,
             solidTiles,
-            dangerousTiles
+            dangerousTiles,
+            climbableTiles
         };
     }
 
@@ -316,6 +370,30 @@ export class Level {
         if (!collectible.collected) {
             collectible.collected = true;
             this.collectedCount++;
+
+            // Track keys separately
+            if (collectible.type === 'key') {
+                this.keysCollected++;
+                console.log(`Key collected! Keys: ${this.keysCollected}`);
+                
+                // Unlock doors if we have keys
+                if (this.keysCollected > 0) {
+                    this.unlockDoors();
+                }
+            }
+            
+            // Track diamond collection and spawn princess
+            if (collectible.type === 'gem') {
+                this.diamondCollected = true;
+                console.log('Diamond collected! Princess appears...');
+                this.spawnPrincess();
+            }
+            
+            // Track princess collection
+            if (collectible.type === 'princess') {
+                this.princessCollected = true;
+                console.log('Princess rescued!');
+            }
 
             // Check if level is complete (all collectibles collected and player reaches door)
             if (this.collectedCount >= this.totalCollectibles) {
@@ -372,26 +450,24 @@ export class Level {
         return null;
     }
 
-    /**
-     * Reset level (respawn collectibles)
-     */
-    public reset(): void {
-        this.collectibles.forEach(collectible => {
-            collectible.collected = false;
-        });
-        this.collectedCount = 0;
-        this.isComplete = false;
-    }
 
     /**
      * Render the level
      */
     public render(context: CanvasRenderingContext2D): void {
+        if (!context) {
+            console.error('Invalid rendering context provided to Level.render');
+            return;
+        }
+        
         // Render tiles
         for (let y = 0; y < this.height; y++) {
+            if (!this.tiles[y]) continue;
             for (let x = 0; x < this.width; x++) {
                 const tile = this.tiles[y][x];
-                this.renderTile(context, tile);
+                if (tile) {
+                    this.renderTile(context, tile);
+                }
             }
         }
 
@@ -402,17 +478,53 @@ export class Level {
             }
         });
 
-        // Render moving obstacles (simple yellow rectangle placeholder)
-        context.fillStyle = '#fbbf24';
-        this.movingObstacles.forEach(o => {
-            context.fillRect(o.x, o.y, TILE_SIZE, TILE_SIZE);
-        });
+        // Render moving platforms (3 wall tiles)
+        if (this.movingObstacles && this.movingObstacles.length > 0) {
+            this.movingObstacles.forEach(platform => {
+                if (platform && typeof platform.x === 'number' && typeof platform.y === 'number') {
+                    // Draw 3 wall tiles to make up the platform
+                    for (let i = 0; i < 3; i++) {
+                        if (this.wallImage) {
+                            context.drawImage(this.wallImage, platform.x + (i * TILE_SIZE), platform.y, TILE_SIZE, TILE_SIZE);
+                        } else {
+                            // Fallback: gray rectangles if wall image not loaded
+                            context.fillStyle = '#6b7280';
+                            context.fillRect(platform.x + (i * TILE_SIZE), platform.y, TILE_SIZE, TILE_SIZE);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render moving enemies (moths)
+        if (this.movingEnemies && this.movingEnemies.length > 0) {
+            this.movingEnemies.forEach(enemy => {
+                if (enemy && typeof enemy.x === 'number' && typeof enemy.y === 'number') {
+                    if (this.enemyImage) {
+                        // Moth/enemy 1.5x current size
+                        const enemySize = TILE_SIZE * 1.5;
+                        const offsetX = (enemySize - TILE_SIZE) / 2;
+                        const offsetY = (enemySize - TILE_SIZE) / 2;
+                        context.drawImage(this.enemyImage, 
+                            enemy.x - offsetX, 
+                            enemy.y - offsetY, 
+                            enemySize, enemySize);
+                    } else {
+                        // Fallback: draw a red rectangle if image not loaded
+                        context.fillStyle = '#ef4444';
+                        context.fillRect(enemy.x, enemy.y, TILE_SIZE, TILE_SIZE);
+                    }
+                }
+            });
+        }
     }
 
     /**
      * Render a single tile
      */
     private renderTile(context: CanvasRenderingContext2D, tile: LevelTile): void {
+        if (!context || !tile) return;
+        
         let frameIndex = -1;
 
         switch (tile.type) {
@@ -425,9 +537,25 @@ export class Level {
             case 'platform':
                 frameIndex = 6; // Brick variant
                 break;
+            case 'ladder':
+                // Draw ladder as a brown rectangle with rungs
+                context.fillStyle = '#8B4513';
+                context.fillRect(tile.x + 6, tile.y, 4, TILE_SIZE);
+                context.fillStyle = '#654321';
+                for (let i = 0; i < TILE_SIZE; i += 4) {
+                    context.fillRect(tile.x + 2, tile.y + i, 12, 2);
+                }
+                return;
             case 'door':
                 if (this.doorImage) {
-                    context.drawImage(this.doorImage, tile.x, tile.y, TILE_SIZE, TILE_SIZE);
+                    // Door 2x current size
+                    const doorSize = TILE_SIZE * 2;
+                    const offsetX = (doorSize - TILE_SIZE) / 2;
+                    const offsetY = doorSize - TILE_SIZE; // Align bottom with tile
+                    context.drawImage(this.doorImage, 
+                        tile.x - offsetX, 
+                        tile.y - offsetY, 
+                        doorSize, doorSize);
                 }
                 return;
             case 'spikes':
@@ -435,9 +563,27 @@ export class Level {
                     context.drawImage(this.spikeImage, tile.x, tile.y, TILE_SIZE, TILE_SIZE);
                 }
                 return;
+            case 'lockedDoor':
+                if (this.lockedDoorImage) {
+                    // Locked door 2x current size (same as regular door)
+                    const doorSize = TILE_SIZE * 2;
+                    const offsetX = (doorSize - TILE_SIZE) / 2;
+                    const offsetY = doorSize - TILE_SIZE; // Align bottom with tile
+                    context.drawImage(this.lockedDoorImage, 
+                        tile.x - offsetX, 
+                        tile.y - offsetY, 
+                        doorSize, doorSize);
+                } else {
+                    // Fallback: draw a red door
+                    context.fillStyle = '#800000';
+                    context.fillRect(tile.x, tile.y, TILE_SIZE, TILE_SIZE);
+                    context.fillStyle = '#ffffff';
+                    context.fillText('🔒', tile.x + 4, tile.y + 12);
+                }
+                return;
         }
 
-        if (frameIndex !== -1) {
+        if (frameIndex !== -1 && this.tileSheet) {
             this.tileSheet.drawFrame(context, frameIndex, tile.x, tile.y);
         }
     }
@@ -464,6 +610,34 @@ export class Level {
                     context.drawImage(this.gemImage, collectible.position.x, collectible.position.y, TILE_SIZE, TILE_SIZE);
                 }
                 return;
+            case 'key':
+                if (this.keyImage) {
+                    context.drawImage(this.keyImage, collectible.position.x, collectible.position.y, TILE_SIZE, TILE_SIZE);
+                } else {
+                    // Fallback: draw a yellow key
+                    context.fillStyle = '#ffff00';
+                    context.fillRect(collectible.position.x, collectible.position.y, TILE_SIZE, TILE_SIZE);
+                    context.fillStyle = '#000000';
+                    context.fillText('🗝️', collectible.position.x + 2, collectible.position.y + 12);
+                }
+                return;
+            case 'princess':
+                if (this.princessImage) {
+                    // Princess same size as player: 28x48
+                    const princessWidth = 28;
+                    const princessHeight = 48;
+                    context.drawImage(this.princessImage, 
+                        collectible.position.x - (princessWidth - TILE_SIZE) / 2, 
+                        collectible.position.y - (princessHeight - TILE_SIZE), 
+                        princessWidth, princessHeight);
+                } else {
+                    // Fallback: draw a pink princess
+                    context.fillStyle = '#ff69b4';
+                    context.fillRect(collectible.position.x, collectible.position.y, TILE_SIZE, TILE_SIZE);
+                    context.fillStyle = '#000000';
+                    context.fillText('👸', collectible.position.x + 2, collectible.position.y + 12);
+                }
+                return;
         }
     }
 
@@ -486,4 +660,102 @@ export class Level {
     }
 
     public getMovingObstacles() { return this.movingObstacles; }
+    public getMovingEnemies() { return this.movingEnemies; }
+
+    /**
+     * Unlock doors when keys are collected
+     */
+    private unlockDoors(): void {
+        let doorsUnlocked = 0;
+        for (let y = 0; y < this.height; y++) {
+            if (!this.tiles[y]) continue;
+            for (let x = 0; x < this.width; x++) {
+                const tile = this.tiles[y][x];
+                if (tile && tile.type === 'lockedDoor' && doorsUnlocked < this.keysCollected) {
+                    this.tiles[y][x] = this.createTile(x, y, 'empty');
+                    doorsUnlocked++;
+                    console.log(`Door unlocked at ${x}, ${y}`);
+                }
+            }
+        }
+    }
+
+    /**
+     * Spawn princess at predefined location when diamond is collected
+     */
+    private spawnPrincess(): void {
+        if (this.princessSpawned || !this.princessSpawnPosition) return;
+        
+        // Add princess as a collectible at predefined spawn position
+        this.collectibles.push({
+            id: 'princess',
+            position: { x: this.princessSpawnPosition.x, y: this.princessSpawnPosition.y },
+            type: 'princess',
+            value: 0, // No score value
+            collected: false,
+            bounds: { 
+                x: this.princessSpawnPosition.x, 
+                y: this.princessSpawnPosition.y, 
+                width: TILE_SIZE, 
+                height: TILE_SIZE 
+            }
+        });
+        
+        this.totalCollectibles++;
+        this.princessSpawned = true;
+        console.log(`Princess spawned at predefined location (${this.princessSpawnPosition.x / TILE_SIZE}, ${this.princessSpawnPosition.y / TILE_SIZE})`);
+    }
+
+    /**
+     * Get keys collected count
+     */
+    public getKeysCollected(): number {
+        return this.keysCollected;
+    }
+
+    /**
+     * Check if diamond has been collected
+     */
+    public isDiamondCollected(): boolean {
+        return this.diamondCollected;
+    }
+
+    /**
+     * Check if princess has been collected
+     */
+    public isPrincessCollected(): boolean {
+        return this.princessCollected;
+    }
+
+    /**
+     * Reset level including keys
+     */
+    public reset(): void {
+        this.collectibles.forEach(collectible => {
+            collectible.collected = false;
+        });
+        this.collectedCount = 0;
+        this.keysCollected = 0;
+        this.isComplete = false;
+        
+        // Reset diamond and princess states
+        this.diamondCollected = false;
+        this.princessCollected = false;
+        this.princessSpawned = false;
+        
+        // Remove princess from collectibles if it was dynamically added
+        this.collectibles = this.collectibles.filter(c => c.type !== 'princess');
+        this.totalCollectibles = this.collectibles.length;
+        
+        // Re-lock doors
+        this.lockedDoors.forEach(doorPos => {
+            const tileX = Math.floor(doorPos.x / TILE_SIZE);
+            const tileY = Math.floor(doorPos.y / TILE_SIZE);
+            if (tileY >= 0 && tileY < this.height && tileX >= 0 && tileX < this.width) {
+                if (this.tiles[tileY] && this.tiles[tileY][tileX]) {
+                    this.tiles[tileY][tileX] = this.createTile(tileX, tileY, 'lockedDoor');
+                }
+            }
+        });
+    }
 } 

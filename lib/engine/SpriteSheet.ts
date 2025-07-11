@@ -33,6 +33,10 @@ export class SpriteSheet {
         if (!this.loadPromise) {
             this.loadPromise = AssetUtils.loadImage(this.url).then(img => {
                 this.image = img;
+            }).catch(error => {
+                console.error(`Failed to load sprite sheet: ${this.url}`, error);
+                this.loadPromise = null; // Reset to allow retry
+                throw error;
             });
         }
         return this.loadPromise;

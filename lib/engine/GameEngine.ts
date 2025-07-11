@@ -17,7 +17,11 @@ export class GameEngine {
 
     constructor(public canvas: HTMLCanvasElement, cfg: Partial<GameConfig> = {}) {
         this.config = { ...GAME_CONFIG, ...cfg };
-        this.context = canvas.getContext('2d')!;
+        const context = canvas.getContext('2d');
+        if (!context) {
+            throw new Error('Failed to get 2D rendering context');
+        }
+        this.context = context;
         optimizeCanvas(canvas);
         resizeCanvas(canvas, this.config);
 
@@ -36,9 +40,9 @@ export class GameEngine {
     }
 
     // State helpers injected by gameplay.ts
-    private startNewGame() { startNewGame(this); }
-    private restartGame() { restartGame(this); }
-    private nextLevel() { nextLevel(this); }
+    startNewGame() { startNewGame(this); }
+    restartGame() { restartGame(this); }
+    nextLevel() { nextLevel(this); }
 
     // Simple event system
     private ev = new Map<string, Function[]>();
@@ -61,5 +65,15 @@ export class GameEngine {
             isGameOver: false,
             isLevelComplete: false,
         } as GameState;
+    }
+
+    // Cleanup method
+    destroy(): void {
+        if (this.stop) {
+            this.stop();
+        }
+        // Clean up any resources
+        this.ev.clear();
+        console.log('Game engine destroyed');
     }
 }
